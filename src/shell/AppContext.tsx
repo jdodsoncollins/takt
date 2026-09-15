@@ -18,24 +18,16 @@ import {
   type VercelProject,
 } from '../domain/models/vercelModels';
 import type { DeploymentID, ProjectID, TeamID } from '../domain/models/ids';
-import { cryptoRandomId, newActionPlan } from '../domain/actions/taktAction';
+import { newActionPlan } from '../domain/actions/taktAction';
 import { ConfirmationPolicy } from '../domain/policies/confirmationPolicy';
-import {
-  compareDeployments,
-  pickBaselineDeployment,
-  type DeploymentDiff,
-} from '../domain/analysis/deploymentCompare';
+import { type DeploymentDiff } from '../domain/analysis/deploymentCompare';
 import { pollDeploymentUntilTerminal } from '../domain/analysis/deploymentPoll';
 import { type FunctionsInventoryReport } from '../domain/analysis/deploymentFunctions';
 import { type DomainDiagnosticsReport } from '../domain/analysis/domainDiagnostics';
-import { analyzeEnvDrift, type EnvDriftReport } from '../domain/analysis/envDrift';
-import { buildFeatureFlagsReport, type FeatureFlagsReport } from '../domain/analysis/featureFlags';
-import { explainFirewall, type FirewallExplanation } from '../domain/analysis/firewallExplain';
-import {
-  formatIncidentSummaryText,
-  summarizeFailedDeployment,
-  type IncidentSummary,
-} from '../domain/analysis/incidentSummary';
+import { type EnvDriftReport } from '../domain/analysis/envDrift';
+import { type FeatureFlagsReport } from '../domain/analysis/featureFlags';
+import { type FirewallExplanation } from '../domain/analysis/firewallExplain';
+import { type IncidentSummary } from '../domain/analysis/incidentSummary';
 import {
   buildBoundedOpsContext,
   formatOpsNarrative,
@@ -47,16 +39,13 @@ import {
   synthesizeOpsNarrativeHybrid,
   type OnDeviceBackend,
 } from '../domain/analysis/opsSynthesizer';
-import {
-  buildObservabilitySnapshot,
-  type ObservabilitySnapshot,
-} from '../domain/analysis/observability';
+import { type ObservabilitySnapshot } from '../domain/analysis/observability';
 import {
   computeAttention,
   isFailedState,
   summarizeDeployments,
 } from '../domain/analysis/projectHealth';
-import { parseRuntimeLogQuery, type RuntimeLogReport } from '../domain/analysis/runtimeLogs';
+import { type RuntimeLogReport } from '../domain/analysis/runtimeLogs';
 import {
   createOnDeviceBackend,
   probeOnDeviceAvailable,
@@ -109,6 +98,8 @@ import {
   mutationConfirmationFor,
 } from '../domain/actions/mutationSafety';
 import { closeModal, navigateTab, openAssistant, openSettings } from './nav';
+import { activity } from './activityItem';
+import { useOpsQueries } from './useOpsQueries';
 
 export type AppTab = 'home' | 'deployments' | 'activity';
 
@@ -217,24 +208,6 @@ const oauthConfig = resolveOAuthConfig(
   },
 );
 
-function activity(
-  kind: ActivityItem['kind'],
-  title: string,
-  detail: string,
-  outcome: ActivityItem['outcome'],
-  extra?: Partial<ActivityItem>,
-): ActivityItem {
-  return {
-    id: cryptoRandomId(),
-    kind,
-    title,
-    detail,
-    outcome,
-    createdAt: new Date().toISOString(),
-    ...extra,
-  };
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const tokenStore = useMemo(() => createPlatformTokenStore(), []);
   const tokenProvider = useMemo(
@@ -257,26 +230,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [deployments, setDeployments] = useState<VercelDeploymentSummary[]>([]);
   const [selectedDeployment, setSelectedDeployment] =
     useState<VercelDeploymentSummary | null>(null);
-  const [buildLogs, setBuildLogs] = useState<
-    { text: string; type?: string | null }[]
-  >([]);
-  const [envMeta, setEnvMeta] = useState<EnvVarMeta[]>([]);
-  const [envDrift, setEnvDrift] = useState<EnvDriftReport | null>(null);
-  const [incident, setIncident] = useState<IncidentSummary | null>(null);
-  const [domainReport, setDomainReport] =
-    useState<DomainDiagnosticsReport | null>(null);
-  const [deploymentDiff, setDeploymentDiff] = useState<DeploymentDiff | null>(
-    null,
-  );
-  const [observability, setObservability] =
-    useState<ObservabilitySnapshot | null>(null);
-  const [firewall, setFirewall] = useState<FirewallExplanation | null>(null);
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlagsReport | null>(
-    null,
-  );
-  const [runtimeLogs, setRuntimeLogs] = useState<RuntimeLogReport | null>(null);
-  const [deploymentFunctions, setDeploymentFunctions] =
-    useState<FunctionsInventoryReport | null>(null);
   const [pollingDeploymentId, setPollingDeploymentId] = useState<string | null>(
     null,
   );
@@ -362,6 +315,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     apiRef.current = client;
     return client;
   }, []);
+
+  const ops = useOpsQueries({
+    generationRef,
+    setBusyKey,
+    setLastError,
+    ensureApi,
+    appendActivity,
+    teamId: connection.selectedTeamId,
+    selectedProjectId,
+    selectedDeployment,
+    deployments,
+    projects,
+  });
 
   const finishConnect = useCallback(
     async (
@@ -616,17 +582,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSelectedProjectId(null);
     setDeployments([]);
     setSelectedDeployment(null);
-    setBuildLogs([]);
-    setEnvMeta([]);
-    setEnvDrift(null);
-    setIncident(null);
-    setDomainReport(null);
-    setDeploymentDiff(null);
-    setObservability(null);
-    setFirewall(null);
-    setFeatureFlags(null);
-    setRuntimeLogs(null);
-    setDeploymentFunctions(null);
+    ops.resetAll();
     setPollingDeploymentId(null);
     setProjectsCachedAt(null);
     setProjectsFromCache(false);
@@ -637,7 +593,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBusyKey(null);
     setConfirmPlanOpen(false);
     setPendingPlanTitle(null);
-  }, [activityStore, invalidateWork, persistSelection]);
+  }, [activityStore, invalidateWork, ops, persistSelection]);
 
   const disconnect = useCallback(async () => {
     await eraseLocalData();
@@ -788,16 +744,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSelectedProjectId(projectId);
       setDeployments([]);
       setSelectedDeployment(null);
-      setBuildLogs([]);
-      setEnvDrift(null);
-      setIncident(null);
-      setDomainReport(null);
-      setDeploymentDiff(null);
-      setObservability(null);
-      setFirewall(null);
-      setFeatureFlags(null);
-      setRuntimeLogs(null);
-      setDeploymentFunctions(null);
+      ops.resetForProjectChange();
       await persistSelection(async () => {
         if (projectId) {
           await tokenStore.save(
@@ -815,7 +762,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setDeployments([]);
       }
     },
-    [invalidateWork, loadDeployments, persistSelection],
+    [invalidateWork, loadDeployments, ops, persistSelection],
   );
 
   const selectDeployment = useCallback(
@@ -823,9 +770,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!id) {
         invalidateWork();
         setSelectedDeployment(null);
-        setBuildLogs([]);
-        setIncident(null);
-        setDeploymentFunctions(null);
+        ops.resetForDeploymentChange();
         return;
       }
       if (!deploymentCanBeSelected(
@@ -841,7 +786,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const listed = deploymentsRef.current.find((row) => row.id === id);
       if (listed) {
         setSelectedDeployment(listed);
-        setDeploymentFunctions(null);
+        ops.clearFunctions();
       }
       invalidateWork();
       const scope = currentScope();
@@ -858,7 +803,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           deploymentsRef.current,
         )) return;
         setSelectedDeployment(d);
-        setDeploymentFunctions(null);
+        ops.clearFunctions();
       } catch (e) {
         if (selectionScopeIsCurrent(scope, currentScope())) {
           setLastError(e instanceof Error ? e.message : String(e));
@@ -867,519 +812,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (selectionScopeIsCurrent(scope, currentScope())) setBusyKey(null);
       }
     },
-    [currentScope, ensureApi, invalidateWork],
+    [currentScope, ensureApi, invalidateWork, ops],
   );
-
-  const loadBuildLogs = useCallback(async () => {
-    if (!selectedDeployment) return;
-    const generation = generationRef.current;
-    setBusyKey('logs');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const lines = await api.getBuildLogLines(
-        selectedDeployment.id,
-        connection.selectedTeamId,
-        120,
-      );
-      if (generation !== generationRef.current) return;
-      setBuildLogs(lines);
-      await appendActivity(
-        activity(
-          'load_logs',
-          'Loaded build logs',
-          `${lines.length} line(s)`,
-          'success',
-          {
-            deploymentId: selectedDeployment.id,
-            projectId: selectedProjectId,
-          },
-        ),
-      );
-    } catch (e) {
-      if (generation !== generationRef.current) return;
-      const msg = e instanceof Error ? e.message : String(e);
-      setLastError(msg);
-      await appendActivity(
-        activity('load_logs', 'Load logs failed', msg, 'failure'),
-      );
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedDeployment,
-    selectedProjectId,
-  ]);
-
-  const runEnvDriftCheck = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const generation = generationRef.current;
-    setBusyKey('env-drift');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const envs = await api.listEnvVarMeta(
-        selectedProjectId,
-        connection.selectedTeamId,
-      );
-      if (generation !== generationRef.current) return;
-      setEnvMeta(envs);
-      const report = analyzeEnvDrift(envs);
-      setEnvDrift(report);
-      await appendActivity(
-        activity(
-          'env_drift',
-          'Env drift check',
-          report.summary,
-          report.findings.some((f) => f.severity === 'critical')
-            ? 'failure'
-            : 'success',
-          { projectId: selectedProjectId },
-        ),
-      );
-    } catch (e) {
-      if (generation !== generationRef.current) return;
-      const msg = e instanceof Error ? e.message : String(e);
-      setLastError(msg);
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedProjectId,
-  ]);
-
-  const runIncidentSummary = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const failed =
-      selectedDeployment && isFailedState(selectedDeployment.state)
-        ? selectedDeployment
-        : deployments.find((d) => isFailedState(d.state)) ?? selectedDeployment;
-    if (!failed) return;
-    const generation = generationRef.current;
-    setBusyKey('incident');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      let logs = buildLogs;
-      if (logs.length === 0 || failed.id !== selectedDeployment?.id) {
-        logs = await api.getBuildLogLines(
-          failed.id,
-          connection.selectedTeamId,
-          80,
-        );
-        if (generation !== generationRef.current) return;
-        setBuildLogs(logs);
-      }
-      const lastSuccess =
-        deployments.find(
-          (d) => d.state === 'READY' && d.id !== failed.id,
-        ) ?? null;
-      let missingProductionEnvKeys: string[] = [];
-      try {
-        const envs =
-          envMeta.length > 0
-            ? envMeta
-            : await api.listEnvVarMeta(
-                selectedProjectId,
-                connection.selectedTeamId,
-              );
-        if (generation !== generationRef.current) return;
-        if (envMeta.length === 0) setEnvMeta(envs);
-        missingProductionEnvKeys = [];
-        for (const finding of analyzeEnvDrift(envs).findings) {
-          if (finding.kind === 'missing_in_production') {
-            missingProductionEnvKeys.push(finding.key);
-          }
-        }
-      } catch {
-        missingProductionEnvKeys = [];
-      }
-      const summary = summarizeFailedDeployment({
-        failed,
-        lastSuccess,
-        logLines: logs,
-        missingProductionEnvKeys,
-      });
-      setIncident(summary);
-      await appendActivity(
-        activity(
-          'incident_summary',
-          summary.headline,
-          formatIncidentSummaryText(summary),
-          isFailedState(failed.state) ? 'failure' : 'info',
-          {
-            projectId: selectedProjectId,
-            deploymentId: failed.id,
-          },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    buildLogs,
-    connection.selectedTeamId,
-    deployments,
-    ensureApi,
-    envMeta,
-    selectedDeployment,
-    selectedProjectId,
-  ]);
-
-  const runDomainDiagnostics = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const generation = generationRef.current;
-    setBusyKey('domains');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const report = await api.diagnoseDomains(
-        selectedProjectId,
-        connection.selectedTeamId,
-      );
-      if (generation !== generationRef.current) return;
-      setDomainReport(report);
-      await appendActivity(
-        activity(
-          'domain_diagnostics',
-          'Domain diagnostics',
-          report.summary,
-          report.domains.some((d) => d.severity === 'critical')
-            ? 'failure'
-            : 'success',
-          { projectId: selectedProjectId },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedProjectId,
-  ]);
-
-  const runDeploymentCompare = useCallback(async () => {
-    if (!selectedDeployment) return;
-    const generation = generationRef.current;
-    setBusyKey('compare');
-    setLastError(null);
-    try {
-      const baseline = pickBaselineDeployment(selectedDeployment, deployments);
-      if (!baseline) {
-        setLastError('No successful baseline deployment to compare against.');
-        return;
-      }
-      const api = await ensureApi();
-      const [current, base] = await Promise.all([
-        api.getDeployment(selectedDeployment.id, connection.selectedTeamId),
-        api.getDeployment(baseline.id, connection.selectedTeamId),
-      ]);
-      if (generation !== generationRef.current) return;
-      const diff = compareDeployments(current, base);
-      setDeploymentDiff(diff);
-      await appendActivity(
-        activity(
-          'deployment_compare',
-          `Compare risk ${diff.riskLevel}`,
-          diff.summary,
-          diff.riskLevel === 'high' ? 'failure' : 'info',
-          {
-            projectId: selectedProjectId,
-            deploymentId: selectedDeployment.id,
-          },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    deployments,
-    ensureApi,
-    selectedDeployment,
-    selectedProjectId,
-  ]);
-
-  const runObservability = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const generation = generationRef.current;
-    setBusyKey('observability');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const raw = await api.fetchObservability(
-        selectedProjectId,
-        connection.selectedTeamId,
-      );
-      if (generation !== generationRef.current) return;
-      const snap = buildObservabilitySnapshot(raw);
-      setObservability(snap);
-      await appendActivity(
-        activity(
-          'observability',
-          snap.headline,
-          snap.bullets.join('\n'),
-          raw.kind === 'ok' ? 'success' : 'info',
-          { projectId: selectedProjectId },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedProjectId,
-  ]);
-
-  const runFirewallExplain = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const generation = generationRef.current;
-    setBusyKey('firewall');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const fw = await api.fetchFirewallStats(
-        selectedProjectId,
-        connection.selectedTeamId,
-      );
-      if (generation !== generationRef.current) return;
-      const explanation = explainFirewall({
-        current: fw.current,
-        previous: fw.previous,
-        availability: fw.availability,
-        note: fw.note,
-      });
-      setFirewall(explanation);
-      await appendActivity(
-        activity(
-          'firewall',
-          explanation.headline,
-          explanation.bullets.join('\n'),
-          'info',
-          { projectId: selectedProjectId },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedProjectId,
-  ]);
-
-  const runFeatureFlags = useCallback(async () => {
-    if (!selectedProjectId) return;
-    const generation = generationRef.current;
-    setBusyKey('flags');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const fl = await api.listFeatureFlags(
-        selectedProjectId,
-        connection.selectedTeamId,
-      );
-      if (generation !== generationRef.current) return;
-      const report = buildFeatureFlagsReport({
-        flags: fl.flags,
-        availability: fl.availability,
-        note: fl.note,
-      });
-      setFeatureFlags(report);
-      await appendActivity(
-        activity(
-          'feature_flags',
-          report.summary,
-          report.bullets.join('\n'),
-          'info',
-          { projectId: selectedProjectId },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    selectedProjectId,
-  ]);
-
-  const runRuntimeLogQuery = useCallback(
-    async (phrase?: string) => {
-      if (!selectedProjectId) return;
-      const generation = generationRef.current;
-      setBusyKey('runtime-logs');
-      setLastError(null);
-      try {
-        const api = await ensureApi();
-        let query = parseRuntimeLogQuery(
-          phrase ?? 'production 5xx errors since this morning',
-        );
-        const phraseLower = (phrase ?? '').toLowerCase();
-        if (
-          selectedDeployment?.readyAt != null &&
-          phraseLower.includes('since deploy')
-        ) {
-          query = {
-            ...query,
-            sinceMs: selectedDeployment.readyAt,
-            label: 'Errors since selected deployment readyAt',
-          };
-        }
-
-        const list = await api.listDeployments(
-          selectedProjectId,
-          connection.selectedTeamId,
-          25,
-        );
-        if (generation !== generationRef.current) return;
-        const deploymentId =
-          (selectedDeployment &&
-          (phraseLower.includes('this deploy') ||
-            phraseLower.includes('selected') ||
-            phraseLower.includes('since deploy'))
-            ? selectedDeployment.id
-            : null) ??
-          list.find(
-            (d) =>
-              d.state === 'READY' &&
-              (d.target === query.environment ||
-                (query.environment === 'production' &&
-                  d.target === 'production')),
-          )?.id ??
-          list.find((d) => d.state === 'READY')?.id ??
-          selectedDeployment?.id ??
-          null;
-
-        if (!deploymentId) {
-          setLastError('No deployment available for runtime log query.');
-          return;
-        }
-
-        const report = await api.queryRuntimeLogs(
-          selectedProjectId,
-          deploymentId,
-          connection.selectedTeamId,
-          query,
-        );
-        if (generation !== generationRef.current) return;
-        setRuntimeLogs(report);
-        await appendActivity(
-          activity(
-            'runtime_logs',
-            report.summary,
-            report.bullets.join('\n'),
-            report.errorCount > 0 ? 'failure' : 'info',
-            {
-              projectId: selectedProjectId,
-              deploymentId: report.deploymentId ?? deploymentId,
-            },
-          ),
-        );
-      } catch (e) {
-        if (generation === generationRef.current) {
-          setLastError(e instanceof Error ? e.message : String(e));
-        }
-      } finally {
-        if (generation === generationRef.current) setBusyKey(null);
-      }
-    },
-    [
-      appendActivity,
-      connection.selectedTeamId,
-      ensureApi,
-      selectedDeployment,
-      selectedProjectId,
-    ],
-  );
-
-  const loadDeploymentFunctions = useCallback(async () => {
-    if (!selectedDeployment) return;
-    const generation = generationRef.current;
-    setBusyKey('functions');
-    setLastError(null);
-    try {
-      const api = await ensureApi();
-      const nodeVersion =
-        projects.find((p) => p.id === selectedProjectId)?.nodeVersion ?? null;
-      const report = await api.fetchDeploymentFunctions(
-        selectedDeployment.id,
-        connection.selectedTeamId,
-        {
-          lambdaOutputs: selectedDeployment.lambdaOutputs ?? null,
-          nodeVersion,
-        },
-      );
-      if (generation !== generationRef.current) return;
-      setDeploymentFunctions(report);
-      const count = report.functions.length;
-      await appendActivity(
-        activity(
-          'inspect_functions',
-          report.availability === 'ok'
-            ? `${count} function${count === 1 ? '' : 's'}`
-            : 'Function inventory unavailable',
-          report.note ?? (report.source === 'none' ? 'No functions published' : report.source),
-          report.availability === 'ok' ? 'success' : 'info',
-          {
-            projectId: selectedProjectId,
-            deploymentId: selectedDeployment.id,
-          },
-        ),
-      );
-    } catch (e) {
-      if (generation === generationRef.current) {
-        setLastError(e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      if (generation === generationRef.current) setBusyKey(null);
-    }
-  }, [
-    appendActivity,
-    connection.selectedTeamId,
-    ensureApi,
-    projects,
-    selectedDeployment,
-    selectedProjectId,
-  ]);
 
   const pollUntilReady = useCallback(
     async (deploymentId: DeploymentID, projectId: ProjectID) => {
@@ -1747,33 +1181,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         productionState: selectedProject?.productionDeployment?.state ?? null,
         needsAttention: selectedProject?.needsAttention ?? false,
         attentionReason: selectedProject?.attentionReason ?? null,
-        incidentHeadline: incident?.headline ?? null,
-        incidentCause: incident?.likelyCause ?? null,
-        incidentConfidence: incident?.confidence ?? null,
+        incidentHeadline: ops.incident?.headline ?? null,
+        incidentCause: ops.incident?.likelyCause ?? null,
+        incidentConfidence: ops.incident?.confidence ?? null,
         envDriftCritical:
-          envDrift?.findings.filter((f) => f.severity === 'critical').length ??
+          ops.envDrift?.findings.filter((f) => f.severity === 'critical').length ??
           0,
-        envDriftSummary: envDrift?.summary ?? null,
-        compareRisk: deploymentDiff?.riskLevel ?? null,
-        compareSummary: deploymentDiff?.summary ?? null,
-        runtimeErrorCount: runtimeLogs?.errorCount ?? null,
-        runtimeSummary: runtimeLogs?.summary ?? null,
+        envDriftSummary: ops.envDrift?.summary ?? null,
+        compareRisk: ops.deploymentDiff?.riskLevel ?? null,
+        compareSummary: ops.deploymentDiff?.summary ?? null,
+        runtimeErrorCount: ops.runtimeLogs?.errorCount ?? null,
+        runtimeSummary: ops.runtimeLogs?.summary ?? null,
         domainCritical:
-          domainReport?.domains.filter((d) => d.severity === 'critical')
+          ops.domainReport?.domains.filter((d) => d.severity === 'critical')
             .length ?? 0,
-        domainSummary: domainReport?.summary ?? null,
+        domainSummary: ops.domainReport?.summary ?? null,
         polling: pollingDeploymentId != null,
         lastMutatorNote: null,
       }),
-    [
-      deploymentDiff,
-      domainReport,
-      envDrift,
-      incident,
-      pollingDeploymentId,
-      runtimeLogs,
-      selectedProject,
-    ],
+    [ops, pollingDeploymentId, selectedProject],
   );
 
   const ensureOnDeviceBackend = useCallback(async () => {
@@ -1853,17 +1279,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedProjectId,
     deployments,
     selectedDeployment,
-    buildLogs,
-    envMeta,
-    envDrift,
-    incident,
-    domainReport,
-    deploymentDiff,
-    observability,
-    firewall,
-    featureFlags,
-    runtimeLogs,
-    deploymentFunctions,
+    buildLogs: ops.buildLogs,
+    envMeta: ops.envMeta,
+    envDrift: ops.envDrift,
+    incident: ops.incident,
+    domainReport: ops.domainReport,
+    deploymentDiff: ops.deploymentDiff,
+    observability: ops.observability,
+    firewall: ops.firewall,
+    featureFlags: ops.featureFlags,
+    runtimeLogs: ops.runtimeLogs,
+    deploymentFunctions: ops.deploymentFunctions,
     pollingDeploymentId,
     pollProgress,
     pollAttempt,
@@ -1899,16 +1325,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectProject,
     loadDeployments,
     selectDeployment,
-    loadBuildLogs,
-    runEnvDriftCheck,
-    runIncidentSummary,
-    runDomainDiagnostics,
-    runDeploymentCompare,
-    runObservability,
-    runFirewallExplain,
-    runFeatureFlags,
-    runRuntimeLogQuery,
-    loadDeploymentFunctions,
+    loadBuildLogs: ops.loadBuildLogs,
+    runEnvDriftCheck: ops.runEnvDriftCheck,
+    runIncidentSummary: ops.runIncidentSummary,
+    runDomainDiagnostics: ops.runDomainDiagnostics,
+    runDeploymentCompare: ops.runDeploymentCompare,
+    runObservability: ops.runObservability,
+    runFirewallExplain: ops.runFirewallExplain,
+    runFeatureFlags: ops.runFeatureFlags,
+    runRuntimeLogQuery: ops.runRuntimeLogQuery,
+    loadDeploymentFunctions: ops.loadDeploymentFunctions,
     requestRedeploy,
     clearActivity,
     selectedProject,
@@ -1918,17 +1344,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedProjectId,
     deployments,
     selectedDeployment,
-    buildLogs,
-    envMeta,
-    envDrift,
-    incident,
-    domainReport,
-    deploymentDiff,
-    observability,
-    firewall,
-    featureFlags,
-    runtimeLogs,
-    deploymentFunctions,
+    ops,
     pollingDeploymentId,
     pollProgress,
     pollAttempt,
@@ -1962,16 +1378,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectProject,
     loadDeployments,
     selectDeployment,
-    loadBuildLogs,
-    runEnvDriftCheck,
-    runIncidentSummary,
-    runDomainDiagnostics,
-    runDeploymentCompare,
-    runObservability,
-    runFirewallExplain,
-    runFeatureFlags,
-    runRuntimeLogQuery,
-    loadDeploymentFunctions,
     requestRedeploy,
     clearActivity,
     selectedProject,

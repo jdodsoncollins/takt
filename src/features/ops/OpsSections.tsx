@@ -436,6 +436,42 @@ export function RuntimeLogsSection({
   );
 }
 
+function IncidentBody({ incident }: { incident: IncidentSummary }) {
+  if (incident.confidence === 'low') {
+    return (
+      <Text style={styles.body}>
+        {incident.headline}. Not enough signal to diagnose.
+      </Text>
+    );
+  }
+  return (
+    <>
+      <Text style={styles.headline}>{incident.headline}</Text>
+      {incident.likelyCause ? (
+        <Text style={styles.body}>Cause: {incident.likelyCause}</Text>
+      ) : null}
+      {incident.commitSubject ? (
+        <>
+          <Text style={styles.caption}>Commit</Text>
+          <DataText>{incident.commitSubject}</DataText>
+          {incident.commitSha ? <DataText>{incident.commitSha}</DataText> : null}
+        </>
+      ) : null}
+      {incident.evidence.length > 0 ? (
+        <>
+          <Text style={styles.caption}>Evidence</Text>
+          {incident.evidence.map((line) => (
+            <Text key={line} style={styles.finding}>
+              · {line}
+            </Text>
+          ))}
+        </>
+      ) : null}
+      <Text style={styles.next}>{incident.suggestedAction}</Text>
+    </>
+  );
+}
+
 export function IncidentSection({
   incident,
 }: {
@@ -446,37 +482,8 @@ export function IncidentSection({
       <SectionLabel>Local incident summary</SectionLabel>
       {incident == null ? (
         <Text style={styles.sub}>No incident summary yet.</Text>
-      ) : incident.confidence === 'low' ? (
-        <Text style={styles.body}>
-          {incident.headline}. Not enough signal to diagnose.
-        </Text>
       ) : (
-        <>
-          <Text style={styles.headline}>{incident.headline}</Text>
-          {incident.likelyCause ? (
-            <Text style={styles.body}>Cause: {incident.likelyCause}</Text>
-          ) : null}
-          {incident.commitSubject ? (
-            <>
-              <Text style={styles.caption}>Commit</Text>
-              <DataText>{incident.commitSubject}</DataText>
-              {incident.commitSha ? (
-                <DataText>{incident.commitSha}</DataText>
-              ) : null}
-            </>
-          ) : null}
-          {incident.evidence.length > 0 ? (
-            <>
-              <Text style={styles.caption}>Evidence</Text>
-              {incident.evidence.map((e) => (
-                <Text key={e} style={styles.finding}>
-                  · {e}
-                </Text>
-              ))}
-            </>
-          ) : null}
-          <Text style={styles.next}>{incident.suggestedAction}</Text>
-        </>
+        <IncidentBody incident={incident} />
       )}
     </ContentCard>
   );

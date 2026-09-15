@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -53,6 +53,24 @@ import {
 } from '../ops/OpsSections';
 
 type DetailPane = 'logs' | 'diagnose' | 'compare' | 'errors';
+
+function DetailEmpty({
+  loading,
+  lastError,
+}: {
+  loading: boolean;
+  lastError: string | null;
+}) {
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.empty}>
+        {loading
+          ? 'Loading this deployment…'
+          : lastError ?? 'Select a deployment from the list.'}
+      </Text>
+    </View>
+  );
+}
 
 const DETAIL_PANES: {
   key: DetailPane;
@@ -132,21 +150,8 @@ export function DeploymentDetailSheet({
   const [sheetH, setSheetH] = useState(0);
   const deploymentId = deployment?.id ?? null;
 
-  useEffect(() => {
-    setPane(null);
-  }, [deploymentId]);
-
   if (!selectedProject || !deployment) {
-    const loading = busyKey === 'deployment';
-    return (
-      <View style={styles.screen}>
-        <Text style={styles.empty}>
-          {loading
-            ? 'Loading this deployment…'
-            : lastError ?? 'Select a deployment from the list.'}
-        </Text>
-      </View>
-    );
+    return <DetailEmpty loading={busyKey === 'deployment'} lastError={lastError} />;
   }
 
   const title = deploymentTitle(deployment);
@@ -172,10 +177,13 @@ export function DeploymentDetailSheet({
     }
     void Haptics.selectionAsync();
     setPane(next);
-    if (next === 'logs') void loadBuildLogs();
-    else if (next === 'diagnose') void runIncidentSummary();
-    else if (next === 'compare') void runDeploymentCompare();
-    else void runRuntimeLogQuery('errors since deploy on this deploy');
+    const loaders: Record<DetailPane, () => Promise<void>> = {
+      logs: loadBuildLogs,
+      diagnose: runIncidentSummary,
+      compare: runDeploymentCompare,
+      errors: () => runRuntimeLogQuery('errors since deploy on this deploy'),
+    };
+    void loaders[next]();
   };
 
   const showFace = pane == null;

@@ -239,10 +239,11 @@ async function writeStoredCredentialRecord(
     [TokenStoreKeys.accessTokenExpiresAt, record.accessTokenExpiresAt],
     [TokenStoreKeys.tokenSource, record.tokenSource],
   ];
-  for (const [key, value] of fields) {
-    if (value == null) await store.delete(key);
-    else await store.save(key, value);
-  }
+  await Promise.all(
+    fields.map(([key, value]) =>
+      value == null ? store.delete(key) : store.save(key, value),
+    ),
+  );
   await store.save(TokenStoreKeys.credentialGeneration, String(record.generation));
 }
 

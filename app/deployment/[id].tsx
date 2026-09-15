@@ -24,6 +24,7 @@ export default function DeploymentRoute() {
       }}
     >
       <DeploymentDetailSheet
+        key={id}
         deploymentId={id}
         onClose={() => undefined}
       />

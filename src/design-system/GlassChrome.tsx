@@ -276,33 +276,22 @@ export function SectionLabel({ children }: { children: string }) {
   return <Text style={styles.section}>{children.toUpperCase()}</Text>;
 }
 
+const PILL_TONES = {
+  success: { bg: colors.successSoft, fg: colors.ready },
+  warning: { bg: colors.warningSoft, fg: colors.building },
+  danger: { bg: colors.dangerSoft, fg: colors.danger },
+  info: { bg: colors.accentSoft, fg: colors.accent },
+  neutral: { bg: colors.pill, fg: colors.textSecondary },
+} as const;
+
 export function StatusPill({
   label,
   tone = 'neutral',
 }: {
   label: string;
-  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+  tone?: keyof typeof PILL_TONES;
 }) {
-  const bg =
-    tone === 'success'
-      ? colors.successSoft
-      : tone === 'warning'
-        ? colors.warningSoft
-        : tone === 'danger'
-          ? colors.dangerSoft
-          : tone === 'info'
-            ? colors.accentSoft
-            : colors.pill;
-  const fg =
-    tone === 'success'
-      ? colors.ready
-      : tone === 'warning'
-        ? colors.building
-        : tone === 'danger'
-          ? colors.danger
-          : tone === 'info'
-            ? colors.accent
-            : colors.textSecondary;
+  const { bg, fg } = PILL_TONES[tone];
   return (
     <View style={[styles.pill, { backgroundColor: bg }]}>
       <Text style={[styles.pillText, { color: fg }]}>

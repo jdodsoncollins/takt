@@ -32,6 +32,7 @@ import {
   type SearchWidgetContext,
   type SearchWidgetId,
 } from './searchWidgets';
+import { fetchSearchCommand } from './fetchSearchCommand';
 
 /**
  * Search is a results canvas: summary + reused ops widgets.
@@ -87,32 +88,12 @@ export function CommandSheet({
     id: Exclude<OpsCommandId, 'unknown'>;
     raw: string;
   } | null>(null);
-  const resumeAfterPick = useRef<'project' | 'deployment' | null>(null);
   const fulfillGen = useRef(0);
 
   useEffect(() => {
     const spoken = [routeReason, answer, status].filter(Boolean).join('. ');
     if (spoken) AccessibilityInfo.announceForAccessibility(spoken);
   }, [answer, routeReason, status]);
-
-  useEffect(() => {
-    const pending = lastActionRef.current;
-    const resume = resumeAfterPick.current;
-    if (!pending || !resume) return;
-    if (resume === 'project' && !selectedProject) return;
-    if (resume === 'deployment' && !selectedDeployment) return;
-    resumeAfterPick.current = null;
-    if (pending.id === 'projects' && resume === 'project') return;
-    const controller = new AbortController();
-    const gen = ++fulfillGen.current;
-    void fulfill(pending.id, pending.raw, undefined, gen, controller.signal);
-    return () => {
-      controller.abort();
-      fulfillGen.current += 1;
-    };
-    // fulfill is recreated each render; resume flag is the gate.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProject, selectedDeployment]);
 
   const widgetContext = () => ({
     connected: connectionIsConnected(connection),
@@ -149,34 +130,25 @@ export function CommandSheet({
       return;
     }
     setStatus('Loading…');
-    if (id === 'incident') {
-      await runIncidentSummary();
-    } else if (id === 'env') {
-      await runEnvDriftCheck();
-    } else if (id === 'domain') {
-      await runDomainDiagnostics();
-    } else if (id === 'compare') {
-      await runDeploymentCompare();
-    } else if (id === 'firewall') {
-      await runFirewallExplain();
-    } else if (id === 'flags') {
-      await runFeatureFlags();
-    } else if (id === 'runtime') {
-      await runRuntimeLogQuery(raw);
-    } else if (id === 'issues') {
-      await runOpsBrief();
-    } else if (id === 'logs') {
-      await loadBuildLogs();
-    } else if (id === 'deploys' && selectedProject) {
-      await loadDeployments(selectedProject.id);
-    }
+    await fetchSearchCommand(id, raw, {
+      runIncidentSummary,
+      runEnvDriftCheck,
+      runDomainDiagnostics,
+      runDeploymentCompare,
+      runFirewallExplain,
+      runFeatureFlags,
+      runRuntimeLogQuery,
+      runOpsBrief,
+      loadBuildLogs,
+      loadDeployments,
+      selectedProjectId: selectedProject?.id ?? null,
+    });
     if (!still()) return;
     setStatus(null);
   };
 
   const clearResults = () => {
     lastActionRef.current = null;
-    resumeAfterPick.current = null;
     setActiveChipId(null);
     setQuery('');
     setStatus(null);
@@ -333,8 +305,12 @@ export function CommandSheet({
               nextSteps={nextSteps}
               status={routing ? null : status}
               onProjectPicked={(projectId) => {
-                resumeAfterPick.current = 'project';
-                void selectProject(projectId);
+                const pending = lastActionRef.current;
+                void selectProject(projectId).then(() => {
+                  if (pending && pending.id !== 'projects') {
+                    void fulfill(pending.id, pending.raw);
+                  }
+                });
               }}
               onDeploymentPicked={(deployId) => {
                 if (lastActionRef.current?.id === 'deploys') {
@@ -342,8 +318,10 @@ export function CommandSheet({
                   openDeployment(deployId);
                   return;
                 }
-                resumeAfterPick.current = 'deployment';
-                void selectDeployment(deployId);
+                const pending = lastActionRef.current;
+                void selectDeployment(deployId).then(() => {
+                  if (pending) void fulfill(pending.id, pending.raw);
+                });
               }}
               openDeployOnSelect={lastActionRef.current?.id === 'deploys'}
             />

@@ -50,6 +50,24 @@ export type ExecutePlanOptions = {
   confirmedMutation?: MutationConfirmation;
 };
 
+function stepBlockReason(
+  step: ActionDescriptor,
+  policy: ConfirmationPolicy,
+  opts: ExecutePlanOptions,
+): string | null {
+  const conf = policy.requirement(step.action);
+  if (
+    (conf === 'hardConfirm' || conf === 'destructiveConfirm') &&
+    !opts.hardConfirmAcknowledged
+  ) {
+    return `Hard confirmation required for: ${step.title}`;
+  }
+  if (!mutationConfirmationMatches(step.action, opts.confirmedMutation)) {
+    return `Mutation confirmation no longer matches: ${step.title}`;
+  }
+  return null;
+}
+
 /**
  * Execute allow-listed actions only.
  * High-risk steps require hardConfirmAcknowledged.
@@ -65,27 +83,14 @@ export async function executeApprovedPlan(
   const results: StepResult[] = [];
 
   for (const step of plan.steps) {
-    const conf = policy.requirement(step.action);
-    if (
-      (conf === 'hardConfirm' || conf === 'destructiveConfirm') &&
-      !opts.hardConfirmAcknowledged
-    ) {
+    const blocked = stepBlockReason(step, policy, opts);
+    if (blocked) {
       return {
         planId: plan.id,
         ok: false,
         status: 'blocked',
         results,
-        blockedReason: `Hard confirmation required for: ${step.title}`,
-      };
-    }
-
-    if (!mutationConfirmationMatches(step.action, opts.confirmedMutation)) {
-      return {
-        planId: plan.id,
-        ok: false,
-        status: 'blocked',
-        results,
-        blockedReason: `Mutation confirmation no longer matches: ${step.title}`,
+        blockedReason: blocked,
       };
     }
 

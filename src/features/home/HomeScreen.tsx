@@ -15,8 +15,13 @@ import {
   typography,
 } from '../../design-system/theme';
 import { FilterChip } from '../../design-system/GlassChrome';
-import { connectionIsConnected } from '../../domain/models/vercelModels';
+import {
+  connectionIsConnected,
+  type VercelConnection,
+  type VercelProject,
+} from '../../domain/models/vercelModels';
 import { rankSites } from '../../domain/models/siteScope';
+import type { OpsNarrative } from '../../domain/analysis/opsNarrative';
 import { AccessibilityIDs } from '../../support/accessibilityIDs';
 import { openSitePicker } from '../../shell/nav';
 import { EmptySitePrompt } from '../sites/EmptySitePrompt';
@@ -26,6 +31,116 @@ import {
   ProjectListSection,
 } from '../ops/OpsSections';
 import { SiteRack } from './SiteRack';
+
+function HomeBanners({
+  projectsFromCache,
+  projectsCachedAt,
+  pollingDeploymentId,
+  lastError,
+}: {
+  projectsFromCache: boolean;
+  projectsCachedAt: string | null;
+  pollingDeploymentId: string | null;
+  lastError: string | null;
+}) {
+  return (
+    <>
+      {projectsFromCache && projectsCachedAt ? (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheText}>
+            Showing cached projects (as of{' '}
+            {new Date(projectsCachedAt).toLocaleString()}). Pull refresh when
+            connected for live data.
+          </Text>
+        </View>
+      ) : null}
+      {pollingDeploymentId ? (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheText}>
+            Deploy poll active. READY only when Vercel confirms.
+          </Text>
+        </View>
+      ) : null}
+      {lastError ? (
+        <View style={styles.errorBanner} accessibilityRole="alert">
+          <Text style={styles.errorText}>{lastError}</Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+function HomeBody({
+  connected,
+  connection,
+  isRehydrating,
+  selectedProject,
+  otherAttention,
+  onDeviceAvailable,
+  opsNarrative,
+  projects,
+  isBusy,
+  onOpenSettings,
+  onDiagnose,
+  onSelectProject,
+}: {
+  connected: boolean;
+  connection: VercelConnection;
+  isRehydrating: boolean;
+  selectedProject: VercelProject | null;
+  otherAttention: number;
+  onDeviceAvailable: boolean;
+  opsNarrative: OpsNarrative | null;
+  projects: VercelProject[];
+  isBusy: boolean;
+  onOpenSettings: () => void;
+  onDiagnose: () => void;
+  onSelectProject: (id: VercelProject['id']) => void;
+}) {
+  if (!connected) {
+    return (
+      <View testID={AccessibilityIDs.connectButton}>
+        <AccountSection
+          connection={connection}
+          isRehydrating={isRehydrating}
+          onOpenSettings={onOpenSettings}
+        />
+      </View>
+    );
+  }
+  if (selectedProject) {
+    return (
+      <>
+        {otherAttention > 0 ? (
+          <FilterChip
+            label={`${otherAttention} other site${otherAttention === 1 ? '' : 's'}`}
+            selected={false}
+            onPress={openSitePicker}
+          />
+        ) : null}
+        <SiteRack
+          project={selectedProject}
+          canDiagnose={onDeviceAvailable}
+          onDiagnose={onDiagnose}
+        />
+        {opsNarrative ? <OpsBriefSection narrative={opsNarrative} /> : null}
+      </>
+    );
+  }
+  return (
+    <>
+      <EmptySitePrompt message="Pick a site to inspect health and deploys." />
+      <View testID={AccessibilityIDs.projectList}>
+        <ProjectListSection
+          projects={rankSites(projects)}
+          sectionLabel="Sites"
+          onSelect={onSelectProject}
+          empty={isBusy ? 'Loading sites…' : 'No sites found for this team.'}
+        />
+      </View>
+    </>
+  );
+}
 
 export function HomeScreen() {
   const {
@@ -74,73 +189,27 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {projectsFromCache && projectsCachedAt ? (
-          <View style={styles.cacheBanner}>
-            <Text style={styles.cacheText}>
-              Showing cached projects (as of{' '}
-              {new Date(projectsCachedAt).toLocaleString()}). Pull refresh when
-              connected for live data.
-            </Text>
-          </View>
-        ) : null}
+        <HomeBanners
+          projectsFromCache={projectsFromCache}
+          projectsCachedAt={projectsCachedAt}
+          pollingDeploymentId={pollingDeploymentId}
+          lastError={lastError}
+        />
 
-        {pollingDeploymentId ? (
-          <View style={styles.cacheBanner}>
-            <Text style={styles.cacheText}>
-              Deploy poll active. READY only when Vercel confirms.
-            </Text>
-          </View>
-        ) : null}
-
-        {lastError ? (
-          <View style={styles.errorBanner} accessibilityRole="alert">
-            <Text style={styles.errorText}>{lastError}</Text>
-          </View>
-        ) : null}
-
-        {!connected ? (
-          <View testID={AccessibilityIDs.connectButton}>
-            <AccountSection
-              connection={connection}
-              isRehydrating={isRehydrating}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          </View>
-        ) : selectedProject ? (
-          <>
-            {otherAttention > 0 ? (
-              <FilterChip
-                label={`${otherAttention} other site${otherAttention === 1 ? '' : 's'}`}
-                selected={false}
-                onPress={openSitePicker}
-              />
-            ) : null}
-            <SiteRack
-              project={selectedProject}
-              canDiagnose={onDeviceAvailable}
-              onDiagnose={() => void runOpsBrief()}
-            />
-            {opsNarrative ? (
-              <OpsBriefSection narrative={opsNarrative} />
-            ) : null}
-          </>
-        ) : (
-          <>
-            <EmptySitePrompt message="Pick a site to inspect health and deploys." />
-            <View testID={AccessibilityIDs.projectList}>
-              <ProjectListSection
-                projects={rankSites(projects)}
-                sectionLabel="Sites"
-                onSelect={(id) => void selectProject(id)}
-                empty={
-                  isBusy
-                    ? 'Loading sites…'
-                    : 'No sites found for this team.'
-                }
-              />
-            </View>
-          </>
-        )}
+        <HomeBody
+          connected={connected}
+          connection={connection}
+          isRehydrating={isRehydrating}
+          selectedProject={selectedProject}
+          otherAttention={otherAttention}
+          onDeviceAvailable={onDeviceAvailable}
+          opsNarrative={opsNarrative}
+          projects={projects}
+          isBusy={isBusy}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onDiagnose={() => void runOpsBrief()}
+          onSelectProject={(id) => void selectProject(id)}
+        />
       </ScrollView>
     </View>
   );
