@@ -1,0 +1,132 @@
+{
+  "fill-specializations": [
+    {
+      "value": "none"
+    },
+    {
+      "appearance": "dark",
+      "value": "none"
+    },
+    {
+      "appearance": "tinted",
+      "value": "automatic"
+    }
+  ],
+  "groups": [
+    {
+      "name": "Light",
+      "layers": [
+        {
+          "image-name": "0_light.png",
+          "name": "Light",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "appearance": "dark",
+              "value": true
+            },
+            {
+              "appearance": "tinted",
+              "value": true
+            }
+          ],
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "specular": false,
+      "blur-material": 0,
+      "lighting": "combined",
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "name": "Dark",
+      "layers": [
+        {
+          "image-name": "1_dark.png",
+          "name": "Dark",
+          "glass": false,
+          "hidden": true,
+          "hidden-specializations": [
+            {
+              "appearance": "dark",
+              "value": false
+            },
+            {
+              "appearance": "tinted",
+              "value": true
+            }
+          ],
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "specular": false,
+      "blur-material": 0,
+      "lighting": "combined",
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "name": "Tinted",
+      "layers": [
+        {
+          "image-name": "2_mark.svg",
+          "name": "Mark",
+          "glass": true,
+          "hidden": true,
+          "hidden-specializations": [
+            {
+              "appearance": "tinted",
+              "value": false
+            }
+          ],
+          "fill-specializations": [
+            {
+              "appearance": "tinted",
+              "value": "automatic"
+            }
+          ],
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "specular": true,
+      "blur-material": 0.22,
+      "lighting": "combined",
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

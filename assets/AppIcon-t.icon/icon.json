@@ -1,0 +1,207 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.90980,0.90980,0.92941,1.00000",
+          "display-p3:0.96863,0.96863,0.98039,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 0.75
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.10980,0.10980,0.11765,1.00000",
+          "display-p3:0.00000,0.00000,0.00000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 0.75
+          }
+        }
+      }
+    },
+    {
+      "appearance": "tinted",
+      "value": "automatic"
+    }
+  ],
+  "groups": [
+    {
+      "name": "Stem",
+      "layers": [
+        {
+          "image-name": "0_stem.svg",
+          "name": "Stem",
+          "glass": true,
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          },
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.10980,0.10980,0.11765,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.96078,0.96078,0.96863,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": "automatic"
+            }
+          ]
+        }
+      ],
+      "specular": true,
+      "blur-material": 0.22,
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "shadow-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "kind": "neutral",
+            "opacity": 0.5
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "kind": "none",
+            "opacity": 0.0
+          }
+        }
+      ],
+      "translucency": {
+        "enabled": true,
+        "value": 0.45
+      },
+      "translucency-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "enabled": true,
+            "value": 0.35
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": false,
+            "value": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bar",
+      "layers": [
+        {
+          "image-name": "1_bar.svg",
+          "name": "Bar",
+          "glass": true,
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          },
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.10980,0.10980,0.11765,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": "automatic"
+            }
+          ]
+        }
+      ],
+      "specular": true,
+      "blur-material": 0.22,
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "shadow-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "kind": "neutral",
+            "opacity": 0.5
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "kind": "none",
+            "opacity": 0.0
+          }
+        }
+      ],
+      "translucency": {
+        "enabled": true,
+        "value": 0.45
+      },
+      "translucency-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "enabled": true,
+            "value": 0.35
+          }
+        },
+        {
+          "appearance": "tinted",
+          "value": {
+            "enabled": false,
+            "value": 0.0
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

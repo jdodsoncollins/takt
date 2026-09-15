@@ -1,0 +1,8 @@
+appId: com.jcollins.takt
+---
+- tapOn:
+    id: "Done"
+    optional: true
+- tapOn:
+    text: "example-portfolio.app"
+    optional: true

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- White silhouette for tinted / monochrome. Matches the flat metronome. -->
+  <path fill="#FFFFFF" fill-rule="evenodd" d="
+    M 512 168
+    C 530 168 546 178 554 194
+    L 852 822
+    C 860 838 848 856 830 856
+    L 194 856
+    C 176 856 164 838 172 822
+    L 470 194
+    C 478 178 494 168 512 168
+    Z
+    M 512 338
+    L 678 708
+    L 346 708
+    Z"/>
+  <rect x="494" y="356" width="36" height="292" rx="6" fill="#FFFFFF"/>
+  <rect x="468" y="348" width="88" height="22" rx="6" fill="#FFFFFF"/>
+  <circle cx="512" cy="572" r="30" fill="#FFFFFF"/>
+  <g transform="rotate(32 560 400)">
+    <rect x="548" y="200" width="26" height="430" rx="13" fill="#FFFFFF"/>
+    <rect x="496" y="368" width="130" height="130" rx="32" fill="#FFFFFF"/>
+  </g>
+</svg>

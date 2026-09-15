@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taktung — three Home directions</title>
+  <style>
+    :root {
+      --bg: #141210;
+      --ink: #f4eee7;
+      --muted: rgba(244,238,231,.62);
+      --rule: rgba(244,238,231,.12);
+      --peach: #e8b4a0;
+      --ready: #7cffb2;
+      --copper: #c4784a;
+      --mint: #7cdecc;
+      --warm: #080706;
+      --surface: #171412;
+      --elev: #221e1b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink); }
+    body {
+      font: 15px/1.45 -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+      padding: 40px 32px 80px;
+      min-width: 1360px;
+    }
+    h1 { font-size: 28px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 8px; }
+    .lede { color: var(--muted); max-width: 52rem; margin: 0 0 36px; }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+      gap: 40px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .gallery { grid-template-columns: 1fr; } }
+    .option h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 6px; color: var(--peach); }
+    .option.daring h2 { color: var(--ready); }
+    .option.seed h2 { color: var(--copper); }
+    .option p.cap { margin: 0 0 16px; color: var(--muted); font-size: 13px; min-height: 3.4em; }
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 54px;
+      background: #000;
+      padding: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+      position: relative;
+    }
+    .screen {
+      height: 100%;
+      border-radius: 42px;
+      overflow: hidden;
+      position: relative;
+      background: var(--warm);
+      color: #f7f1ea;
+    }
+    .island {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 126px; height: 36px; background: #000; border-radius: 20px; z-index: 5;
+    }
+    .status {
+      display: flex; justify-content: space-between; padding: 18px 28px 0 28px;
+      font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+    }
+    .nav {
+      display: flex; align-items: center; gap: 10px;
+      padding: 18px 16px 8px;
+    }
+    .iconbtn {
+      width: 36px; height: 36px; border-radius: 18px;
+      background: rgba(247,241,234,.08);
+      display: grid; place-items: center; font-size: 14px;
+    }
+    .title {
+      flex: 1; text-align: center; font-weight: 600; font-size: 17px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .title span { opacity: .45; font-size: 11px; }
+    .tabs {
+      position: absolute; left: 16px; right: 16px; bottom: 18px;
+      height: 64px; border-radius: 32px;
+      background: rgba(34,30,27,.78);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(247,241,234,.16);
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      padding: 6px; z-index: 4;
+    }
+    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; color: rgba(247,241,234,.55); }
+    .tab.on { color: #f7f1ea; background: rgba(8,7,6,.55); border-radius: 26px; }
+    .mono { font-family: Menlo, ui-monospace, monospace; }
+    .ready { color: var(--ready); font-family: Menlo, ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; font-weight: 700; }
+    .body { padding: 4px 16px 92px; }
+    .site-face {
+      background: #ece7df; color: #1a1612; border-radius: 10px; overflow: hidden;
+      font-family: "Iowan Old Style", "Palatino", Georgia, serif;
+    }
+    .site-face header { padding: 10px 12px 6px; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; opacity: .55; }
+    .site-face h3 { margin: 0 12px; font-size: 16px; font-weight: 600; }
+    .site-face .rule { height: 1px; background: #cfc8bc; margin: 8px 12px; }
+    .site-face p { margin: 0 12px 10px; font-size: 9px; line-height: 1.35; opacity: .7; }
+    .site-face .hero { height: 36px; margin: 0 12px 10px; background: #d8cfc3; border-radius: 4px; }
+
+    /* A */
+    .a .state { padding: 4px 20px 10px; }
+    .group {
+      background: var(--surface); border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+    }
+    .row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; min-height: 44px;
+      border-bottom: 1px solid rgba(247,241,234,.08);
+    }
+    .row:last-child { border-bottom: 0; }
+    .k { font-size: 13px; color: rgba(247,241,234,.5); width: 92px; flex-shrink: 0; }
+    .v { flex: 1; font-size: 15px; }
+    .face-sm { width: 54px; height: 72px; flex-shrink: 0; }
+    .a .cta {
+      width: 100%; margin-top: 4px; padding: 14px;
+      background: rgba(232,180,160,.16); color: #f6e6dc;
+      border: 0; border-radius: 12px; font: 600 17px/1 -apple-system, sans-serif;
+    }
+
+    /* B */
+    .b .screen { background: #050504; }
+    .b .canvas { position: absolute; inset: 0; }
+    .b .canvas .site-face {
+      position: absolute; inset: 0; border-radius: 42px;
+      background: #e8e2d8;
+    }
+    .b .canvas .site-face header { padding-top: 86px; font-size: 11px; }
+    .b .canvas .site-face h3 { font-size: 28px; margin: 0 28px; }
+    .b .canvas .site-face .hero { height: 180px; margin: 18px 28px; }
+    .b .canvas .site-face p { font-size: 13px; margin: 0 28px 12px; }
+    .hud {
+      position: absolute; left: 16px; right: 16px; bottom: 96px;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px;
+      padding: 10px 12px 10px 14px; border-radius: 16px;
+      background: rgba(8,7,6,.78); backdrop-filter: blur(20px);
+      border: 1px solid rgba(124,255,178,.22);
+      white-space: nowrap;
+    }
+    .hud .ready { font-size: 11px; }
+    .b .pill {
+      padding: 8px 14px; border-radius: 18px;
+      background: #f7f1ea; color: #080706;
+      font-size: 14px; font-weight: 600; flex-shrink: 0;
+    }
+
+    /* C */
+    .c .screen { background: #0c0908; }
+    .c .title { letter-spacing: .04em; font-family: Menlo, ui-monospace, monospace; font-size: 13px; }
+    .plate {
+      margin: 8px 12px 0; border-radius: 6px;
+      border: 1px solid rgba(196,120,74,.35);
+      background: linear-gradient(180deg, #1a1410, #120e0c);
+    }
+    .plate.face { padding: 8px; }
+    .c .site-face { height: 168px; border-radius: 4px; }
+    .stamp { padding: 12px 14px 14px; }
+    .stamp .ready { color: var(--mint); font-size: 13px; }
+    .tick {
+      height: 3px; margin: 8px 0 12px; background: rgba(196,120,74,.2); border-radius: 2px; overflow: hidden;
+    }
+    .tick i { display: block; width: 38%; height: 100%; background: var(--copper); }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .cell .k { display: block; width: auto; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: rgba(196,120,74,.8); margin-bottom: 4px; }
+    .cell .v { font-size: 12px; }
+    .c .cta {
+      margin: 12px 12px 0; width: calc(100% - 24px); padding: 13px;
+      background: #c4784a; color: #1a1410; border: 0; border-radius: 4px;
+      font: 700 14px/1 Menlo, ui-monospace, monospace; letter-spacing: .12em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Taktung Home — three directions</h1>
+  <p class="lede">Same site, same facts, three structures. A cuts the current card. B makes the live production URL the screen. C is the seed-string take I would keep from that set (iron / copper / 50-split / mint). Nothing here is in <code>src/</code>.</p>
+
+  <div class="gallery">
+    <article class="option">
+      <h2>A · Cautious</h2>
+      <p class="cap">Flows of iOS Settings. Design of shipping Taktung. Peach, StateWord, glass tabs. Domain appears once. Health is a row, not a paragraph.</p>
+      <div class="phone"><div class="screen a">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="nav">
+          <div class="iconbtn">⚙</div>
+          <div class="title">example-portfolio.app <span>▾</span></div>
+          <div class="iconbtn">↻</div>
+        </div>
+        <div class="body">
+          <div class="state ready">ALL CLEAR</div>
+          <div class="group">
+            <div class="row">
+              <div class="site-face face-sm">
+                <header>Studio</header>
+                <h3>Work</h3>
+                <div class="hero"></div>
+              </div>
+              <div>
+                <div class="ready">READY</div>
+                <div class="v" style="margin-top:6px">Update landing page layout</div>
+                <div class="mono" style="font-size:12px;opacity:.55;margin-top:4px">main · 7f3a21c · 12m</div>
+              </div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="row"><span class="k">Git</span><span class="v mono">example/portfolio</span></div>
+            <div class="row"><span class="k">Framework</span><span class="v mono">nextjs</span></div>
+            <div class="row"><span class="k">Domain</span><span class="v mono">example-portfolio.app</span></div>
+          </div>
+          <button class="cta" type="button">Check for issues</button>
+        </div>
+        <div class="tabs">
+          <div class="tab on">⌂<span>Home</span></div>
+          <div class="tab">↗<span>Deploys</span></div>
+          <div class="tab">◷<span>Activity</span></div>
+          <div class="tab">✶<span>Search</span></div>
+        </div>
+      </div></div>
+    </article>
+
+    <article class="option daring">
+      <h2>B · Daring</h2>
+      <p class="cap">Flows of TestFlight (the build sits on the running app). Design of a Console HUD. No card. Phosphor is the only accent. Diagnose is a pill on the glass.</p>
+      <div class="phone"><div class="screen b">
+        <div class="canvas">
+          <div class="site-face">
+            <header>Portfolio</header>
+            <h3>Selected work</h3>
+            <div class="hero"></div>
+            <p>A quiet index of projects. Type, image, and a single column of dates.</p>
+            <p>Landing page layout · revised this morning.</p>
+          </div>
+        </div>
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="nav">
+          <div class="iconbtn">⚙</div>
+          <div class="title">example-portfolio.app <span>▾</span></div>
+          <div class="iconbtn">↻</div>
+        </div>
+        <div class="hud">
+          <span class="ready">ALL CLEAR</span>
+          <span class="mono" style="font-size:12px;opacity:.8">READY · 7f3a21c · 12m</span>
+          <span class="pill">Diagnose</span>
+        </div>
+        <div class="tabs">
+          <div class="tab on">⌂<span>Home</span></div>
+          <div class="tab">↗<span>Deploys</span></div>
+          <div class="tab">◷<span>Activity</span></div>
+          <div class="tab">✶<span>Search</span></div>
+        </div>
+      </div></div>
+    </article>
+
+    <article class="option seed">
+      <h2>C · Seed (the random one I would keep)</h2>
+      <p class="cap">From <code>de50fe…68e6</code>: Fe, copper, mint, a 50-split. Face on top, stamped telemetry below. Age is a metronome, not a sentence. Diagnose is the only button.</p>
+      <div class="phone"><div class="screen c">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="nav">
+          <div class="iconbtn">⚙</div>
+          <div class="title">EXAMPLE-PORTFOLIO.APP <span>▾</span></div>
+          <div class="iconbtn">↻</div>
+        </div>
+        <div class="plate face">
+          <div class="site-face" style="height:168px">
+            <header>Studio</header>
+            <h3>Selected work</h3>
+            <div class="rule"></div>
+            <div class="hero"></div>
+            <p>Landing page, tightened this morning.</p>
+          </div>
+        </div>
+        <div class="plate stamp">
+          <div class="ready">ALL CLEAR · READY</div>
+          <div class="tick" title="age"><i></i></div>
+          <div class="grid3">
+            <div class="cell"><span class="k">Prod</span><span class="v mono">main</span></div>
+            <div class="cell"><span class="k">Git</span><span class="v mono">7f3a21c</span></div>
+            <div class="cell"><span class="k">Age</span><span class="v mono">12m</span></div>
+          </div>
+        </div>
+        <button class="cta" type="button">DIAGNOSE</button>
+        <div class="tabs">
+          <div class="tab on">⌂<span>Home</span></div>
+          <div class="tab">↗<span>Deploys</span></div>
+          <div class="tab">◷<span>Activity</span></div>
+          <div class="tab">✶<span>Search</span></div>
+        </div>
+      </div></div>
+    </article>
+  </div>
+</body>
+</html>

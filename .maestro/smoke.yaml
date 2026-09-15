@@ -1,0 +1,18 @@
+# Maestro smoke — structure + core chrome (no live Vercel token required).
+# Run: maestro test .maestro/smoke.yaml
+# Requires a running Expo / native build. Override appId to match EXPO_PUBLIC_BUNDLE_ID.
+
+appId: com.example.takt
+---
+- launchApp
+- assertVisible:
+    id: "takt.root"
+- tapOn: "Deploys"
+- tapOn: "Activity"
+- tapOn: "Home"
+- tapOn:
+    id: "takt.tab.settings"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- tapOn: "Done"

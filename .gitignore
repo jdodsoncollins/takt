@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+dist-android/
+dist-ios/
+dist-web/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files — never commit secrets
+.env
+.env.*
+!.env.example
+.env*.local
+
+# local archives
+*.ipa
+build-*.ipa
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# local agent / simulator captures
+.grok/
+
+# App Store Connect CLI credentials (never commit keys)
+.asc/config.json
